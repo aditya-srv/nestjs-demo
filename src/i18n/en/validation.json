@@ -14,5 +14,13 @@
   "MIN_LENGTH": "{property} must be longer than or equal to {constraints.0} characters",
   "MAX_LENGTH": "{property} must be shorter than or equal to {constraints.0} characters",
   "WHITELIST": "{property} should not exist",
-  "ARRAY_NOT_EMPTY": "{property} should not be empty"
+  "ARRAY_NOT_EMPTY": "{property} should not be empty",
+  "IS_NUMBER_STRING": "{property} must be a number string",
+  "MATCHES": "{property} must match {constraints.0} regular expression",
+  "IS_PHONE_FOR_COUNTRY": "{property} is not a valid phone number for the given country code",
+  "IS_URL": "{property} must be a URL address",
+  "IS_ISO8601": "{property} must be a valid ISO 8601 date string",
+  "IS_DATE_STRING": "{property} must be a valid ISO 8601 date string",
+  "IS_ARRAY": "{property} must be an array",
+  "IS_IN": "{property} must be one of the following values: {constraints.0}"
 }

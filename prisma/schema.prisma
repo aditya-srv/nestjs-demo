@@ -7,10 +7,59 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  PATIENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int         @id @default(autoincrement())
+  email              String?     @unique
+  countryCode        String?
+  phoneNumber        String?
+  name               String?
+  role               Role?
+  preferredLanguage  String      @default("en")
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  onboarding         Onboarding?
+
+  @@unique([countryCode, phoneNumber])
+}
+
+model Onboarding {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateOfBirth       DateTime? @db.Date
+  gender            Gender?
+  profilePhotoUrl   String?
+  emergencyContact  Json?
+  medicalHistory    Json?
+  allergies         Json?
+  completed         Boolean   @default(false)
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model PhoneOtp {
+  id             Int       @id @default(autoincrement())
+  countryCode    String
+  phoneNumber    String
+  codeHash       String
+  expiresAt      DateTime
+  lastSentAt     DateTime
+  failedAttempts Int       @default(0)
+  blockedUntil   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([countryCode, phoneNumber])
 }

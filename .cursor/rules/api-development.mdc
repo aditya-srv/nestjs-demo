@@ -1,0 +1,127 @@
+---
+alwaysApply: false
+---
+# API development
+
+Follow this pipeline. Do not invent envelopes, helpers, filters, or folders.
+
+`controller → DTO (class-validator) → service → PrismaService → map to response DTO`
+
+Read `docs/i18n.md` for catalog keys. Read `docs/folder-structure.md` for paths.
+
+## Layout (do not deviate)
+
+```
+src/modules/<name>/
+  dto/                       # request + response DTOs only
+    create-<name>.dto.ts
+    update-<name>.dto.ts     # PATCH; all fields optional
+    query-<name>.dto.ts      # list filters / pagination
+    <name>-response.dto.ts
+  <name>.controller.ts
+  <name>.service.ts
+  <name>.module.ts
+```
+
+- One Nest module = one `src/i18n/en/<name>.json` in the same change. Mirror keys under `hi/` when that locale exists.
+- Controllers: `@Controller({ path: '<name>', version: API_DEFAULT_VERSION })`. Thin: bind params/body, call the service, return. No Prisma, no `i18n.t`.
+- Import with `.js` extensions (`nodenext`). No `any`. No Zod on HTTP DTOs (Zod is env-only). No Swagger unless asked.
+- Do not add `ValidationPipe` / extra exception filters on a controller. Globals in `AppModule` already handle this.
+
+## Request DTOs
+
+Use **classes** + `class-validator` + `class-transformer`. Every field has validators. Extra JSON keys fail (`forbidNonWhitelisted`).
+
+```ts
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { i18nValidationMessage } from 'nestjs-i18n';
+import type { I18nTranslations } from '../../../generated/i18n.generated.js';
+
+export class CreateUserDto {
+  @IsEmail({}, { message: i18nValidationMessage<I18nTranslations>('validation.IS_EMAIL') })
+  email: string;
+
+  @IsString({ message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING') })
+  @IsNotEmpty({ message: i18nValidationMessage<I18nTranslations>('validation.IS_NOT_EMPTY') })
+  @MinLength(8, { message: i18nValidationMessage<I18nTranslations>('validation.MIN_LENGTH') })
+  password: string;
+}
+```
+
+- Message **must** be `i18nValidationMessage<I18nTranslations>('validation.CONSTRAINT')`. Never a raw English string. Never `users.errors.*` on field validators.
+- New constraints: add a SCREAMING_SNAKE key to `src/i18n/en/validation.json` (match class-validator), then use it. Do not inline copy.
+- Nested objects: `@ValidateNested()` + `@Type(() => ChildDto)`. Arrays: `@IsArray()` + `@ValidateNested({ each: true })` + `@Type`.
+- Query/params are DTOs or pipes (`ParseIntPipe`). Do not read `req.query` / `req.body` by hand.
+
+### Reuse / extend
+
+- **Shared fields:** extract a small base class in the same `dto/` folder; `extends` it.
+- **Additive:** `class RegisterDto extends CreateUserDto { ... }`.
+- **PATCH:** do **not** `extends CreateUserDto`. Required fields would stay required. Write `UpdateUserDto` with the same validators plus `@IsOptional()` on every field (`email?: string`).
+- **Omit:** new class; copy the fields you keep. Do not use `@nestjs/mapped-types` (not in this repo).
+- Cross-module: import the owning module’s DTO. Never put feature DTOs in `src/common/`.
+
+## Response DTOs
+
+Return the resource (or list) **directly**. Do not wrap `{ success, data, message }`.
+
+- Never return a Prisma model / `Prisma.UserGetPayload` / `select` leftover (password hashes, tokens).
+- Shape lives in `<name>-response.dto.ts`. Reuse by composing (`user: UserResponseDto`), not by duplicating fields.
+- Map in the **service** (`toResponse`). Controller return type is the response DTO (or array).
+
+```ts
+export class UserResponseDto {
+  id: number;
+  email: string;
+  name: string | null;
+}
+
+private toResponse(row: { id: number; email: string; name: string | null }): UserResponseDto {
+  return { id: row.id, email: row.email, name: row.name };
+}
+```
+
+## Validation errors
+
+DTO failures are thrown by `I18nValidationPipe` and formatted by `i18nValidationExceptionFilter` as:
+
+`{ statusCode: 400, error: 'Bad Request', message: { 'email': ['...'], 'address.city': ['...'] } }`
+
+- Do **not** `throw new BadRequestException` for missing/invalid DTO fields.
+- Do **not** `try/catch` validation to reformat it.
+- Business-rule failures (not schema) belong in the service as HTTP exceptions (below).
+
+## Services + Prisma
+
+- Inject `PrismaService` (global). Do not `new PrismaClient()`. Do not create per-module Prisma wrappers.
+- All DB access in the feature service. Transactions: `this.prisma.$transaction(...)`.
+- Do not inject `I18nService` to throw. Keys are typed via `i18nException('users.errors.notFound')` (`I18nPath`).
+- Inject `I18nService<I18nTranslations>` only for success/copy the service itself returns (rare). `this.i18n.t` is for that copy and for filters — not for HTTP exceptions.
+
+```ts
+constructor(private readonly prisma: PrismaService) {}
+```
+
+## Throwing errors
+
+Throw Nest HTTP exceptions only. Pass **keys**, not translated strings: `i18nException(key, args)`. `AllExceptionsFilter` (and `PrismaClientExceptionFilter`) translate with the request locale.
+
+```ts
+import { i18nException } from '../../common/utils/i18n-exception.js';
+
+throw new NotFoundException(i18nException('users.errors.notFound'));
+throw new ConflictException(i18nException('users.errors.emailTaken'));
+throw new BadRequestException(i18nException('orders.errors.invalidStatus', { status }));
+```
+
+| Do | Do not |
+|---|---|
+| `users.errors.notFound` in `src/i18n/en/users.json` | `errors.notFound` for a known user |
+| `i18nException(key, args)` — one full sentence, named `{placeholders}` | `this.i18n.t(...)` in the exception, English literals, string concat, `{0}` |
+| Let `P2002` / `P2025` / `P2003` bubble to `PrismaClientExceptionFilter` | Catch-all `try/catch` around Prisma |
+| Catch `P2002` **only** for a domain key (`emailTaken`) | `throw new Error(...)`, returning `{ error }` with 200 |
+| Logs/stack traces in English | Translating Prisma internals |
+
+Generic filter fallbacks (`errors.conflict`, `errors.notFound`, `errors.relatedNotFound`, `errors.internal`) are last-resort when the resource is unknown. Domain code uses `<module>.errors.<intent>`.
+
+Do not call `i18n.t` in the controller. Do not create new exception classes or change global filters to ship a feature.

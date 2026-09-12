@@ -9,6 +9,10 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { I18nService } from 'nestjs-i18n';
 import type { I18nTranslations } from '../../generated/i18n.generated.js';
+import {
+  translateHttpException,
+  translateKey,
+} from '../utils/i18n-exception.js';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -35,10 +39,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const body =
       isHttpException && status < 500
-        ? exception.getResponse()
+        ? translateHttpException(exception, host, this.i18n)
         : {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-            message: this.i18n.t('errors.internal'),
+            message: translateKey('errors.internal', host, this.i18n),
           };
 
     httpAdapter.reply(ctx.getResponse(), body, status);

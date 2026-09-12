@@ -8,11 +8,20 @@ import { PrismaClientExceptionFilter } from './common/filters/prisma-client-exce
 import { globalValidationPipe } from './common/pipes/global-validation.pipe.js';
 import { ConfigModule } from './config/config.module.js';
 import { I18nConfigModule } from './config/i18n.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtConfigModule } from './modules/auth/jwt.module.js';
+import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
-  imports: [ConfigModule, I18nConfigModule, JwtConfigModule, PrismaModule],
+  imports: [
+    ConfigModule,
+    I18nConfigModule,
+    JwtConfigModule,
+    PrismaModule,
+    AuthModule,
+    OnboardingModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
@@ -22,7 +31,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     },
     {
       provide: APP_FILTER,
-      useValue: i18nValidationExceptionFilter,
+      useClass: AllExceptionsFilter,
     },
     {
       provide: APP_FILTER,
@@ -30,7 +39,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     },
     {
       provide: APP_FILTER,
-      useClass: AllExceptionsFilter,
+      useValue: i18nValidationExceptionFilter,
     },
   ],
 })

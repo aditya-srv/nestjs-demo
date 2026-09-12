@@ -15,6 +15,7 @@ import { ConfigModule } from './config.module.js';
       resolvers: [AcceptLanguageResolver],
       useFactory: (config: ConfigService) => ({
         fallbackLanguage: config.getOrThrow<string>('app.fallbackLanguage'),
+        throwOnMissingKey: config.get<string>('app.nodeEnv') === 'development',
         loaderOptions: {
           path: join(import.meta.dirname, '..', 'i18n'),
           watch: config.get<string>('app.nodeEnv') === 'development',

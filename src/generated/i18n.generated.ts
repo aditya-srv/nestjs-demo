@@ -5,6 +5,17 @@
 import type { Path } from "nestjs-i18n";
 /* prettier-ignore */
 export type I18nTranslations = {
+    "auth": {
+        "errors": {
+            "phoneTaken": string;
+            "phoneNotRegistered": string;
+            "otpCooldown": string;
+            "otpBlocked": string;
+            "otpInvalid": string;
+            "otpNotRequested": string;
+            "unauthorized": string;
+        };
+    };
     "common": {
         "hello": string;
     };
@@ -13,6 +24,14 @@ export type I18nTranslations = {
         "conflict": string;
         "notFound": string;
         "relatedNotFound": string;
+    };
+    "onboarding": {
+        "errors": {
+            "alreadyCompleted": string;
+            "incomplete": string;
+            "emailTaken": string;
+            "invalidDateOfBirth": string;
+        };
     };
     "validation": {
         "IS_STRING": string;
@@ -31,6 +50,14 @@ export type I18nTranslations = {
         "MAX_LENGTH": string;
         "WHITELIST": string;
         "ARRAY_NOT_EMPTY": string;
+        "IS_NUMBER_STRING": string;
+        "MATCHES": string;
+        "IS_PHONE_FOR_COUNTRY": string;
+        "IS_URL": string;
+        "IS_ISO8601": string;
+        "IS_DATE_STRING": string;
+        "IS_ARRAY": string;
+        "IS_IN": string;
     };
 };
 /* prettier-ignore */
