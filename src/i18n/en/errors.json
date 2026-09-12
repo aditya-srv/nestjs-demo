@@ -1,0 +1,6 @@
+{
+  "internal": "Internal server error",
+  "conflict": "Resource already exists",
+  "notFound": "Resource not found",
+  "relatedNotFound": "Related record not found"
+}
