@@ -10,7 +10,9 @@ import { ConfigModule } from './config/config.module.js';
 import { I18nConfigModule } from './config/i18n.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtConfigModule } from './modules/auth/jwt.module.js';
+import { DoctorsModule } from './modules/doctors/doctors.module.js';
 import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
+import { PatientsModule } from './modules/patients/patients.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -20,6 +22,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
     JwtConfigModule,
     PrismaModule,
     AuthModule,
+    PatientsModule,
+    DoctorsModule,
     OnboardingModule,
   ],
   controllers: [AppController],

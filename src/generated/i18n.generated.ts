@@ -19,6 +19,11 @@ export type I18nTranslations = {
     "common": {
         "hello": string;
     };
+    "doctors": {
+        "errors": {
+            "emailTaken": string;
+        };
+    };
     "errors": {
         "internal": string;
         "conflict": string;
@@ -30,7 +35,13 @@ export type I18nTranslations = {
             "alreadyCompleted": string;
             "incomplete": string;
             "emailTaken": string;
+        };
+    };
+    "patients": {
+        "errors": {
+            "onboardingIncomplete": string;
             "invalidDateOfBirth": string;
+            "emailTaken": string;
         };
     };
     "validation": {

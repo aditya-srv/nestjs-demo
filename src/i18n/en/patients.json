@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "onboardingIncomplete": "Finish onboarding before updating your profile",
+    "invalidDateOfBirth": "Date of birth must be a valid date in the past",
+    "emailTaken": "This email address is already in use"
+  }
+}

@@ -3,10 +3,10 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { API_DEFAULT_VERSION } from '../../common/utils/configure-app.js';
 import type { User } from '../../generated/prisma/client.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { EmergencyContactDto } from '../patients/dto/emergency-contact.dto.js';
 import type { OnboardingResponseDto } from './dto/onboarding-response.dto.js';
 import { SaveAllergiesDto } from './dto/save-allergies.dto.js';
 import { SaveBasicDetailsDto } from './dto/save-basic-details.dto.js';
-import { SaveEmergencyContactDto } from './dto/save-emergency-contact.dto.js';
 import { SaveMedicalHistoryDto } from './dto/save-medical-history.dto.js';
 import { OnboardingService } from './onboarding.service.js';
 
@@ -31,7 +31,7 @@ export class OnboardingController {
   @Patch('emergency-contact')
   saveEmergencyContact(
     @CurrentUser() user: User,
-    @Body() dto: SaveEmergencyContactDto,
+    @Body() dto: EmergencyContactDto,
   ): Promise<OnboardingResponseDto> {
     return this.onboardingService.saveEmergencyContact(user, dto);
   }

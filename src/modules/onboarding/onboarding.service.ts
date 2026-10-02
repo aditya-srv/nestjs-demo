@@ -8,32 +8,38 @@ import {
   Prisma,
   Role,
   type Onboarding,
+  type PatientProfile,
   type User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { EmergencyContactDto } from '../patients/dto/emergency-contact.dto.js';
+import { PatientsService } from '../patients/patients.service.js';
 import type { SaveAllergiesDto } from './dto/save-allergies.dto.js';
 import type { SaveBasicDetailsDto } from './dto/save-basic-details.dto.js';
-import type { SaveEmergencyContactDto } from './dto/save-emergency-contact.dto.js';
 import type { SaveMedicalHistoryDto } from './dto/save-medical-history.dto.js';
 import {
   ONBOARDING_STEPS,
   type AllergyResponseDto,
-  type EmergencyContactResponseDto,
   type MedicalHistoryResponseDto,
   type OnboardingResponseDto,
   type OnboardingStep,
-  type PhoneResponseDto,
 } from './dto/onboarding-response.dto.js';
 
 @Injectable()
 export class OnboardingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly patients: PatientsService,
+  ) {}
 
   async get(user: User): Promise<OnboardingResponseDto> {
-    const onboarding = await this.prisma.onboarding.findUnique({
-      where: { userId: user.id },
-    });
-    return this.toResponse(user, onboarding);
+    const [onboarding, profile] = await Promise.all([
+      this.prisma.onboarding.findUnique({
+        where: { userId: user.id },
+      }),
+      this.patients.findByUserId(user.id),
+    ]);
+    return this.toResponse(user, profile, onboarding);
   }
 
   async saveBasicDetails(
@@ -41,10 +47,9 @@ export class OnboardingService {
     dto: SaveBasicDetailsDto,
   ): Promise<OnboardingResponseDto> {
     await this.assertNotCompleted(user.id);
-    const dateOfBirth = this.parseDateOfBirth(dto.dateOfBirth);
 
     try {
-      const [updatedUser, onboarding] = await this.prisma.$transaction(
+      const [updatedUser, profile] = await this.prisma.$transaction(
         async (tx) => {
           const updatedUser = await tx.user.update({
             where: { id: user.id },
@@ -57,26 +62,24 @@ export class OnboardingService {
             },
           });
 
-          const onboarding = await tx.onboarding.upsert({
-            where: { userId: user.id },
-            create: {
-              userId: user.id,
-              dateOfBirth,
+          const profile = await this.patients.upsertDemographics(
+            user.id,
+            {
+              dateOfBirth: dto.dateOfBirth,
               gender: dto.gender,
               profilePhotoUrl: dto.profilePhotoUrl ?? null,
             },
-            update: {
-              dateOfBirth,
-              gender: dto.gender,
-              profilePhotoUrl: dto.profilePhotoUrl ?? null,
-            },
-          });
+            tx,
+          );
 
-          return [updatedUser, onboarding] as const;
+          return [updatedUser, profile] as const;
         },
       );
 
-      return this.toResponse(updatedUser, onboarding);
+      const onboarding = await this.prisma.onboarding.findUnique({
+        where: { userId: user.id },
+      });
+      return this.toResponse(updatedUser, profile, onboarding);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -92,29 +95,15 @@ export class OnboardingService {
 
   async saveEmergencyContact(
     user: User,
-    dto: SaveEmergencyContactDto,
+    dto: EmergencyContactDto,
   ): Promise<OnboardingResponseDto> {
     await this.assertNotCompleted(user.id);
 
-    const emergencyContact: EmergencyContactResponseDto = {
-      name: dto.name,
-      relationship: dto.relationship,
-      phone: {
-        countryCode: dto.phone.countryCode,
-        phoneNumber: dto.phone.phoneNumber,
-      },
-      alternatePhone: dto.alternatePhone
-        ? {
-            countryCode: dto.alternatePhone.countryCode,
-            phoneNumber: dto.alternatePhone.phoneNumber,
-          }
-        : null,
-    };
-
-    const onboarding = await this.upsertStep(user.id, {
-      emergencyContact: this.toJsonValue(emergencyContact),
+    const profile = await this.patients.upsertEmergencyContact(user.id, dto);
+    const onboarding = await this.prisma.onboarding.findUnique({
+      where: { userId: user.id },
     });
-    return this.toResponse(user, onboarding);
+    return this.toResponse(user, profile, onboarding);
   }
 
   async saveMedicalHistory(
@@ -131,10 +120,13 @@ export class OnboardingService {
       })),
     };
 
-    const onboarding = await this.upsertStep(user.id, {
-      medicalHistory: this.toJsonValue(medicalHistory),
-    });
-    return this.toResponse(user, onboarding);
+    const [onboarding, profile] = await Promise.all([
+      this.upsertStep(user.id, {
+        medicalHistory: this.toJsonValue(medicalHistory),
+      }),
+      this.patients.findByUserId(user.id),
+    ]);
+    return this.toResponse(user, profile, onboarding);
   }
 
   async saveAllergies(
@@ -143,10 +135,13 @@ export class OnboardingService {
   ): Promise<OnboardingResponseDto> {
     await this.assertNotCompleted(user.id);
 
-    const onboarding = await this.upsertStep(user.id, {
-      allergies: this.toJsonValue(dto.allergies),
-    });
-    return this.toResponse(user, onboarding);
+    const [onboarding, profile] = await Promise.all([
+      this.upsertStep(user.id, {
+        allergies: this.toJsonValue(dto.allergies),
+      }),
+      this.patients.findByUserId(user.id),
+    ]);
+    return this.toResponse(user, profile, onboarding);
   }
 
   async complete(user: User): Promise<OnboardingResponseDto> {
@@ -160,7 +155,8 @@ export class OnboardingService {
       );
     }
 
-    const draftedSteps = this.draftedSteps(user, onboarding);
+    const profile = await this.patients.findByUserId(user.id);
+    const draftedSteps = this.draftedSteps(user, profile, onboarding);
     if (draftedSteps.length !== ONBOARDING_STEPS.length) {
       throw new BadRequestException(
         i18nException('onboarding.errors.incomplete'),
@@ -184,7 +180,7 @@ export class OnboardingService {
       },
     );
 
-    return this.toResponse(updatedUser, updatedOnboarding);
+    return this.toResponse(updatedUser, profile, updatedOnboarding);
   }
 
   private async assertNotCompleted(userId: number): Promise<void> {
@@ -207,7 +203,6 @@ export class OnboardingService {
   private async upsertStep(
     userId: number,
     data: {
-      emergencyContact?: Prisma.InputJsonValue;
       medicalHistory?: Prisma.InputJsonValue;
       allergies?: Prisma.InputJsonValue;
     },
@@ -222,61 +217,18 @@ export class OnboardingService {
     });
   }
 
-  private parseDateOfBirth(isoDate: string): Date {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
-    if (!match) {
-      throw new BadRequestException(
-        i18nException('onboarding.errors.invalidDateOfBirth'),
-      );
-    }
-
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    const dateOfBirth = new Date(Date.UTC(year, month - 1, day));
-
-    if (
-      dateOfBirth.getUTCFullYear() !== year ||
-      dateOfBirth.getUTCMonth() !== month - 1 ||
-      dateOfBirth.getUTCDate() !== day
-    ) {
-      throw new BadRequestException(
-        i18nException('onboarding.errors.invalidDateOfBirth'),
-      );
-    }
-
-    const now = new Date();
-    const todayUtc = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-    );
-
-    if (dateOfBirth.getTime() > todayUtc) {
-      throw new BadRequestException(
-        i18nException('onboarding.errors.invalidDateOfBirth'),
-      );
-    }
-
-    return dateOfBirth;
-  }
-
   private draftedSteps(
     user: User,
+    profile: PatientProfile | null,
     onboarding: Onboarding | null,
   ): OnboardingStep[] {
     const steps: OnboardingStep[] = [];
 
-    if (
-      user.name &&
-      user.email &&
-      onboarding?.dateOfBirth &&
-      onboarding.gender
-    ) {
+    if (user.name && user.email && profile?.dateOfBirth && profile.gender) {
       steps.push('basicDetails');
     }
 
-    if (onboarding?.emergencyContact != null) {
+    if (profile?.emergencyContact != null) {
       steps.push('emergencyContact');
     }
 
@@ -293,77 +245,32 @@ export class OnboardingService {
 
   private toResponse(
     user: User,
+    profile: PatientProfile | null,
     onboarding: Onboarding | null,
   ): OnboardingResponseDto {
     return {
       completed: onboarding?.completed ?? false,
-      draftedSteps: this.draftedSteps(user, onboarding),
+      draftedSteps: this.draftedSteps(user, profile, onboarding),
       basicDetails: {
         fullName: user.name,
-        dateOfBirth: onboarding?.dateOfBirth
-          ? this.toIsoDate(onboarding.dateOfBirth)
+        dateOfBirth: profile?.dateOfBirth
+          ? this.patients.toIsoDate(profile.dateOfBirth)
           : null,
-        age: onboarding?.dateOfBirth
-          ? this.ageFromDob(onboarding.dateOfBirth)
+        age: profile?.dateOfBirth
+          ? this.patients.ageFromDob(profile.dateOfBirth)
           : null,
-        gender: onboarding?.gender ?? null,
+        gender: profile?.gender ?? null,
         countryCode: user.countryCode,
         phoneNumber: user.phoneNumber,
         email: user.email,
-        profilePhotoUrl: onboarding?.profilePhotoUrl ?? null,
+        profilePhotoUrl: profile?.profilePhotoUrl ?? null,
         preferredLanguage: user.preferredLanguage,
       },
-      emergencyContact: this.toEmergencyContact(onboarding?.emergencyContact),
+      emergencyContact: this.patients.toEmergencyContact(
+        profile?.emergencyContact,
+      ),
       medicalHistory: this.toMedicalHistory(onboarding?.medicalHistory),
       allergies: this.toAllergies(onboarding?.allergies),
-    };
-  }
-
-  private toIsoDate(date: Date): string {
-    return date.toISOString().slice(0, 10);
-  }
-
-  private ageFromDob(dateOfBirth: Date, now = new Date()): number {
-    const birth = new Date(
-      Date.UTC(
-        dateOfBirth.getUTCFullYear(),
-        dateOfBirth.getUTCMonth(),
-        dateOfBirth.getUTCDate(),
-      ),
-    );
-    let age = now.getUTCFullYear() - birth.getUTCFullYear();
-    const monthDiff = now.getUTCMonth() - birth.getUTCMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && now.getUTCDate() < birth.getUTCDate())
-    ) {
-      age -= 1;
-    }
-    return age;
-  }
-
-  private toEmergencyContact(
-    value: Prisma.JsonValue | null | undefined,
-  ): EmergencyContactResponseDto | null {
-    const record = this.asRecord(value);
-    if (!record) {
-      return null;
-    }
-
-    const phone = this.asPhone(record.phone);
-    if (
-      typeof record.name !== 'string' ||
-      typeof record.relationship !== 'string' ||
-      !phone
-    ) {
-      return null;
-    }
-
-    return {
-      name: record.name,
-      relationship: record.relationship,
-      phone,
-      alternatePhone: this.asPhone(record.alternatePhone),
     };
   }
 
@@ -442,23 +349,5 @@ export class OnboardingService {
       return null;
     }
     return value;
-  }
-
-  private asPhone(
-    value: Prisma.JsonValue | null | undefined,
-  ): PhoneResponseDto | null {
-    const record = this.asRecord(value);
-    if (
-      !record ||
-      typeof record.countryCode !== 'string' ||
-      typeof record.phoneNumber !== 'string'
-    ) {
-      return null;
-    }
-
-    return {
-      countryCode: record.countryCode,
-      phoneNumber: record.phoneNumber,
-    };
   }
 }

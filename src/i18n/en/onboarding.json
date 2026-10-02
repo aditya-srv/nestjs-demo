@@ -2,7 +2,6 @@
   "errors": {
     "alreadyCompleted": "Onboarding is already completed",
     "incomplete": "Finish all onboarding steps before completing",
-    "emailTaken": "This email address is already in use",
-    "invalidDateOfBirth": "Date of birth must be a valid date in the past"
+    "emailTaken": "This email address is already in use"
   }
 }

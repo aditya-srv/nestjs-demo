@@ -1,4 +1,5 @@
 import type { Gender } from '../../../generated/prisma/client.js';
+import type { EmergencyContactResponseDto } from '../../patients/dto/patient-response.dto.js';
 import type { AllergySeverity, AllergyType } from './save-allergies.dto.js';
 
 export const ONBOARDING_STEPS = [
@@ -10,11 +11,6 @@ export const ONBOARDING_STEPS = [
 
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
-export class PhoneResponseDto {
-  countryCode: string;
-  phoneNumber: string;
-}
-
 export class BasicDetailsResponseDto {
   fullName: string | null;
   dateOfBirth: string | null;
@@ -25,13 +21,6 @@ export class BasicDetailsResponseDto {
   email: string | null;
   profilePhotoUrl: string | null;
   preferredLanguage: string;
-}
-
-export class EmergencyContactResponseDto {
-  name: string;
-  relationship: string;
-  phone: PhoneResponseDto;
-  alternatePhone: PhoneResponseDto | null;
 }
 
 export class SurgeryResponseDto {
