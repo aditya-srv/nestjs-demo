@@ -5,6 +5,15 @@
 import type { Path } from "nestjs-i18n";
 /* prettier-ignore */
 export type I18nTranslations = {
+    "appointments": {
+        "errors": {
+            "notFound": string;
+            "forbidden": string;
+            "invalidStatusTransition": string;
+            "patientNotFound": string;
+            "doctorNotFound": string;
+        };
+    };
     "auth": {
         "errors": {
             "phoneTaken": string;

@@ -30,7 +30,9 @@ Auth also has `guards/` and `strategies/`. Do not add feature modules next to `s
 
 ## `src/common/`
 
-Cross-cutting code only, in: `decorators/`, `filters/`, `guards/`, `interceptors/`, `pipes/`, `utils/`.
+Cross-cutting code only, in: `decorators/`, `dto/`, `filters/`, `guards/`, `interceptors/`, `pipes/`, `utils/`.
+
+`dto/` holds shared envelopes only (`api-response.dto.ts`). Feature request/response DTOs stay under `src/modules/<name>/dto/`.
 
 ## Do not
 

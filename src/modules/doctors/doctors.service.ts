@@ -1,4 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { toDataResponse } from '../../common/dto/api-response.dto.js';
 import { i18nException } from '../../common/utils/i18n-exception.js';
 import {
   Prisma,
@@ -6,7 +7,10 @@ import {
   type User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { DoctorResponseDto } from './dto/doctor-response.dto.js';
+import type {
+  DoctorDto,
+  DoctorResponseDto,
+} from './dto/doctor-response.dto.js';
 import type { UpdateDoctorDto } from './dto/update-doctor.dto.js';
 
 @Injectable()
@@ -15,10 +19,13 @@ export class DoctorsService {
 
   async getMe(user: User): Promise<DoctorResponseDto> {
     const profile = await this.findByUserId(user.id);
-    return this.toResponse(user, profile);
+    return toDataResponse(this.toResponse(user, profile));
   }
 
-  async updateMe(user: User, dto: UpdateDoctorDto): Promise<DoctorResponseDto> {
+  async updateMe(
+    user: User,
+    dto: UpdateDoctorDto,
+  ): Promise<DoctorResponseDto> {
     try {
       const updatedUser = await this.prisma.$transaction(async (tx) => {
         const updatedUser = await tx.user.update({
@@ -36,7 +43,7 @@ export class DoctorsService {
       });
 
       const profile = await this.findByUserId(user.id);
-      return this.toResponse(updatedUser, profile);
+      return toDataResponse(this.toResponse(updatedUser, profile));
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -76,7 +83,7 @@ export class DoctorsService {
   private toResponse(
     user: User,
     profile: DoctorProfile | null,
-  ): DoctorResponseDto {
+  ): DoctorDto {
     return {
       fullName: user.name,
       email: user.email,

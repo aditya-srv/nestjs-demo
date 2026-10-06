@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { toDataResponse } from '../../common/dto/api-response.dto.js';
 import { i18nException } from '../../common/utils/i18n-exception.js';
 import {
   Prisma,
@@ -21,6 +22,7 @@ import {
   ONBOARDING_STEPS,
   type AllergyResponseDto,
   type MedicalHistoryResponseDto,
+  type OnboardingDto,
   type OnboardingResponseDto,
   type OnboardingStep,
 } from './dto/onboarding-response.dto.js';
@@ -39,7 +41,7 @@ export class OnboardingService {
       }),
       this.patients.findByUserId(user.id),
     ]);
-    return this.toResponse(user, profile, onboarding);
+    return toDataResponse(this.toResponse(user, profile, onboarding));
   }
 
   async saveBasicDetails(
@@ -79,7 +81,7 @@ export class OnboardingService {
       const onboarding = await this.prisma.onboarding.findUnique({
         where: { userId: user.id },
       });
-      return this.toResponse(updatedUser, profile, onboarding);
+      return toDataResponse(this.toResponse(updatedUser, profile, onboarding));
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -103,7 +105,7 @@ export class OnboardingService {
     const onboarding = await this.prisma.onboarding.findUnique({
       where: { userId: user.id },
     });
-    return this.toResponse(user, profile, onboarding);
+    return toDataResponse(this.toResponse(user, profile, onboarding));
   }
 
   async saveMedicalHistory(
@@ -126,7 +128,7 @@ export class OnboardingService {
       }),
       this.patients.findByUserId(user.id),
     ]);
-    return this.toResponse(user, profile, onboarding);
+    return toDataResponse(this.toResponse(user, profile, onboarding));
   }
 
   async saveAllergies(
@@ -141,7 +143,7 @@ export class OnboardingService {
       }),
       this.patients.findByUserId(user.id),
     ]);
-    return this.toResponse(user, profile, onboarding);
+    return toDataResponse(this.toResponse(user, profile, onboarding));
   }
 
   async complete(user: User): Promise<OnboardingResponseDto> {
@@ -180,7 +182,9 @@ export class OnboardingService {
       },
     );
 
-    return this.toResponse(updatedUser, profile, updatedOnboarding);
+    return toDataResponse(
+      this.toResponse(updatedUser, profile, updatedOnboarding),
+    );
   }
 
   private async assertNotCompleted(userId: number): Promise<void> {
@@ -247,7 +251,7 @@ export class OnboardingService {
     user: User,
     profile: PatientProfile | null,
     onboarding: Onboarding | null,
-  ): OnboardingResponseDto {
+  ): OnboardingDto {
     return {
       completed: onboarding?.completed ?? false,
       draftedSteps: this.draftedSteps(user, profile, onboarding),

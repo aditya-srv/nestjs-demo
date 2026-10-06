@@ -1,3 +1,4 @@
+import { DataResponseDto } from '../../../common/dto/api-response.dto.js';
 import type { Gender } from '../../../generated/prisma/client.js';
 
 export class PhoneResponseDto {
@@ -12,7 +13,7 @@ export class EmergencyContactResponseDto {
   alternatePhone: PhoneResponseDto | null;
 }
 
-export class PatientResponseDto {
+export class PatientDto {
   fullName: string | null;
   email: string | null;
   countryCode: string | null;
@@ -24,4 +25,8 @@ export class PatientResponseDto {
   profilePhotoUrl: string | null;
   bloodGroup: string | null;
   emergencyContact: EmergencyContactResponseDto | null;
+}
+
+export class PatientResponseDto extends DataResponseDto<PatientDto> {
+  declare data: PatientDto;
 }

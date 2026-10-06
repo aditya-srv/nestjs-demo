@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "notFound": "Appointment not found",
+    "forbidden": "You do not have access to this appointment",
+    "invalidStatusTransition": "Cannot change appointment status to {status}",
+    "patientNotFound": "Patient not found",
+    "doctorNotFound": "Doctor not found"
+  }
+}

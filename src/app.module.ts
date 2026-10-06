@@ -8,6 +8,7 @@ import { PrismaClientExceptionFilter } from './common/filters/prisma-client-exce
 import { globalValidationPipe } from './common/pipes/global-validation.pipe.js';
 import { ConfigModule } from './config/config.module.js';
 import { I18nConfigModule } from './config/i18n.module.js';
+import { AppointmentsModule } from './modules/appointments/appointments.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtConfigModule } from './modules/auth/jwt.module.js';
 import { DoctorsModule } from './modules/doctors/doctors.module.js';
@@ -25,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PatientsModule,
     DoctorsModule,
     OnboardingModule,
+    AppointmentsModule,
   ],
   controllers: [AppController],
   providers: [

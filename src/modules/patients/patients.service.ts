@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { toDataResponse } from '../../common/dto/api-response.dto.js';
 import { i18nException } from '../../common/utils/i18n-exception.js';
 import {
   Prisma,
@@ -14,6 +15,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { EmergencyContactDto } from './dto/emergency-contact.dto.js';
 import type {
   EmergencyContactResponseDto,
+  PatientDto,
   PatientResponseDto,
   PhoneResponseDto,
 } from './dto/patient-response.dto.js';
@@ -25,7 +27,7 @@ export class PatientsService {
 
   async getMe(user: User): Promise<PatientResponseDto> {
     const profile = await this.findByUserId(user.id);
-    return this.toResponse(user, profile);
+    return toDataResponse(this.toResponse(user, profile));
   }
 
   async updateMe(
@@ -51,7 +53,7 @@ export class PatientsService {
       });
 
       const profile = await this.findByUserId(user.id);
-      return this.toResponse(updatedUser, profile);
+      return toDataResponse(this.toResponse(updatedUser, profile));
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -278,7 +280,7 @@ export class PatientsService {
   private toResponse(
     user: User,
     profile: PatientProfile | null,
-  ): PatientResponseDto {
+  ): PatientDto {
     return {
       fullName: user.name,
       email: user.email,

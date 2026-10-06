@@ -9,6 +9,7 @@ datasource db {
 
 enum Role {
   PATIENT
+  DOCTOR
 }
 
 enum Gender {
@@ -18,19 +19,35 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
+enum AppointmentType {
+  FOLLOW_UP
+  CONSULTATION
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
 model User {
-  id                Int             @id @default(autoincrement())
-  email             String?         @unique
-  countryCode       String?
-  phoneNumber       String?
-  name              String?
-  role              Role?
-  preferredLanguage String          @default("en")
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  onboarding        Onboarding?
-  patientProfile    PatientProfile?
-  doctorProfile     DoctorProfile?
+  id                        Int             @id @default(autoincrement())
+  email                     String?         @unique
+  countryCode               String?
+  phoneNumber               String?
+  name                      String?
+  role                      Role?
+  preferredLanguage         String          @default("en")
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  onboarding                Onboarding?
+  patientProfile            PatientProfile?
+  doctorProfile             DoctorProfile?
+  appointmentsAsPatient     Appointment[]   @relation("AppointmentPatient")
+  appointmentsAsDoctor      Appointment[]   @relation("AppointmentDoctor")
+  appointmentsCreated       Appointment[]   @relation("AppointmentCreatedBy")
 
   @@unique([countryCode, phoneNumber])
 }
@@ -82,4 +99,25 @@ model PhoneOtp {
   updatedAt      DateTime  @updatedAt
 
   @@unique([countryCode, phoneNumber])
+}
+
+model Appointment {
+  id              Int               @id @default(autoincrement())
+  patientId       Int
+  doctorId        Int?
+  createdByUserId Int
+  appointmentAt   DateTime
+  type            AppointmentType
+  status          AppointmentStatus @default(SCHEDULED)
+  reason          String?
+  notes           String?
+  patient         User              @relation("AppointmentPatient", fields: [patientId], references: [id])
+  doctor          User?             @relation("AppointmentDoctor", fields: [doctorId], references: [id])
+  createdBy       User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([patientId, appointmentAt])
+  @@index([doctorId, appointmentAt])
+  @@index([status, appointmentAt])
 }

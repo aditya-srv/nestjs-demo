@@ -1,3 +1,4 @@
+import { DataResponseDto } from '../../../common/dto/api-response.dto.js';
 import type { Gender } from '../../../generated/prisma/client.js';
 import type { EmergencyContactResponseDto } from '../../patients/dto/patient-response.dto.js';
 import type { AllergySeverity, AllergyType } from './save-allergies.dto.js';
@@ -40,11 +41,15 @@ export class AllergyResponseDto {
   reaction: string;
 }
 
-export class OnboardingResponseDto {
+export class OnboardingDto {
   completed: boolean;
   draftedSteps: OnboardingStep[];
   basicDetails: BasicDetailsResponseDto;
   emergencyContact: EmergencyContactResponseDto | null;
   medicalHistory: MedicalHistoryResponseDto | null;
   allergies: AllergyResponseDto[] | null;
+}
+
+export class OnboardingResponseDto extends DataResponseDto<OnboardingDto> {
+  declare data: OnboardingDto;
 }

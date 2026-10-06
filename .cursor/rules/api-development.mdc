@@ -3,7 +3,7 @@ alwaysApply: false
 ---
 # API development
 
-Follow this pipeline. Do not invent envelopes, helpers, filters, or folders.
+Follow this pipeline. Do not invent helpers, filters, or folders beyond what this rule and `docs/folder-structure.md` allow. Use the shared response envelopes in `src/common/dto/api-response.dto.ts` — do not invent other wrappers.
 
 `controller → DTO (class-validator) → service → PrismaService → map to response DTO`
 
@@ -59,24 +59,81 @@ export class CreateUserDto {
 - **Additive:** `class RegisterDto extends CreateUserDto { ... }`.
 - **PATCH:** do **not** `extends CreateUserDto`. Required fields would stay required. Write `UpdateUserDto` with the same validators plus `@IsOptional()` on every field (`email?: string`).
 - **Omit:** new class; copy the fields you keep. Do not use `@nestjs/mapped-types` (not in this repo).
-- Cross-module: import the owning module’s DTO. Never put feature DTOs in `src/common/`.
+- Cross-module feature DTOs: import the owning module’s DTO. Never put feature DTOs in `src/common/`.
+- Shared response envelope bases only: `src/common/dto/api-response.dto.ts` (`DataResponseDto`, `ListResponseDto`). Module envelopes **extend** those bases in `<name>-response.dto.ts`.
 
 ## Response DTOs
 
-Return the resource (or list) **directly**. Do not wrap `{ success, data, message }`.
+Always wrap success payloads with the shared envelopes in `src/common/dto/api-response.dto.ts`. Do not invent other wrappers (`success`, `message`, etc.). Errors stay as Nest HTTP exception bodies (unchanged).
 
+**Single resource** — module DTO extends `DataResponseDto<ResourceDto>`:
+
+```json
+{ "data": { } }
+```
+
+or when intentionally empty:
+
+```json
+{ "data": null }
+```
+
+**List (paginated)** — module DTO extends `ListResponseDto<ResourceDto>`:
+
+```json
+{
+  "data": [],
+  "meta": { "page": 1, "pageSize": 20, "total": 0 }
+}
+```
+
+- Declare resource shape as `<Name>Dto` and envelope as `<Name>ResponseDto` / `<Name>ListResponseDto` in `<name>-response.dto.ts`. Compose nested resources; do not duplicate fields.
 - Never return a Prisma model / `Prisma.UserGetPayload` / `select` leftover (password hashes, tokens).
-- Shape lives in `<name>-response.dto.ts`. Reuse by composing (`user: UserResponseDto`), not by duplicating fields.
-- Map in the **service** (`toResponse`). Controller return type is the response DTO (or array).
+- Map the resource in the **service** (`toResponse` → `<Name>Dto`), then wrap with `toDataResponse` / `toListResponse`. Controller return type is the **module envelope DTO**, never bare `DataResponseDto<…>` / `ListResponseDto<…>`.
+- List query DTOs use `page` + `pageSize` (defaults: `1` / `20`). Meta must echo the effective page/pageSize and the filtered `total`.
+- Shared bases live in `src/common/dto/`. Feature resource + envelope DTOs stay in the module. Never put feature DTOs in `src/common/`.
 
 ```ts
-export class UserResponseDto {
+import {
+  DataResponseDto,
+  ListResponseDto,
+  toDataResponse,
+  toListResponse,
+} from '../../common/dto/api-response.dto.js';
+
+export class UserDto {
   id: number;
   email: string;
   name: string | null;
 }
 
-private toResponse(row: { id: number; email: string; name: string | null }): UserResponseDto {
+export class UserResponseDto extends DataResponseDto<UserDto> {
+  declare data: UserDto;
+}
+
+export class UserListResponseDto extends ListResponseDto<UserDto> {
+  declare data: UserDto[];
+}
+
+async findOne(id: number): Promise<UserResponseDto> {
+  const row = await this.requireUser(id);
+  return toDataResponse(this.toResponse(row));
+}
+
+async findAll(query: QueryUserDto): Promise<UserListResponseDto> {
+  const page = query.page ?? 1;
+  const pageSize = query.pageSize ?? 20;
+  const [rows, total] = await this.prisma.$transaction([
+    this.prisma.user.findMany({ skip: (page - 1) * pageSize, take: pageSize }),
+    this.prisma.user.count(),
+  ]);
+  return toListResponse(
+    rows.map((row) => this.toResponse(row)),
+    { page, pageSize, total },
+  );
+}
+
+private toResponse(row: { id: number; email: string; name: string | null }): UserDto {
   return { id: row.id, email: row.email, name: row.name };
 }
 ```

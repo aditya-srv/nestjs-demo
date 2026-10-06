@@ -52,6 +52,7 @@ project/
 │   │
 │   ├── common/
 │   │   ├── decorators/
+│   │   ├── dto/
 │   │   ├── filters/
 │   │   ├── guards/
 │   │   ├── interceptors/

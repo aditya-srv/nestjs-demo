@@ -10,6 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { toDataResponse } from '../../common/dto/api-response.dto.js';
 import {
   i18nException,
   type I18nExceptionArgs,
@@ -18,8 +19,10 @@ import type { I18nPath } from '../../generated/i18n.generated.js';
 import { Prisma, type User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type {
+  AuthDto,
   AuthResponseDto,
   AuthUserResponseDto,
+  OtpRequestedDto,
   OtpRequestedResponseDto,
 } from './dto/auth-response.dto.js';
 import type { PhoneDto, VerifyPhoneDto } from './dto/phone.dto.js';
@@ -51,19 +54,25 @@ export class AuthService {
     @Inject(OTP_SENDER) private readonly otpSender: OtpSender,
   ) {}
 
-  async requestRegisterOtp(dto: PhoneDto): Promise<OtpRequestedResponseDto> {
+  async requestRegisterOtp(
+    dto: PhoneDto,
+  ): Promise<OtpRequestedResponseDto> {
     const phone = this.phoneIdentity(dto);
     await this.assertPhoneAvailable(phone);
-    return this.requestOtp(phone);
+    return toDataResponse(await this.requestOtp(phone));
   }
 
-  async requestLoginOtp(dto: PhoneDto): Promise<OtpRequestedResponseDto> {
+  async requestLoginOtp(
+    dto: PhoneDto,
+  ): Promise<OtpRequestedResponseDto> {
     const phone = this.phoneIdentity(dto);
     await this.requireRegisteredUser(phone);
-    return this.requestOtp(phone);
+    return toDataResponse(await this.requestOtp(phone));
   }
 
-  async verifyRegisterOtp(dto: VerifyPhoneDto): Promise<AuthResponseDto> {
+  async verifyRegisterOtp(
+    dto: VerifyPhoneDto,
+  ): Promise<AuthResponseDto> {
     const phone = this.phoneIdentity(dto);
     await this.assertPhoneAvailable(phone);
     const otp = await this.requireValidOtp(phone, dto.otp);
@@ -77,7 +86,7 @@ export class AuthService {
         return created;
       });
 
-      return this.toAuthResponse(user);
+      return toDataResponse(this.toAuthResponse(user));
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -89,19 +98,21 @@ export class AuthService {
     }
   }
 
-  async verifyLoginOtp(dto: VerifyPhoneDto): Promise<AuthResponseDto> {
+  async verifyLoginOtp(
+    dto: VerifyPhoneDto,
+  ): Promise<AuthResponseDto> {
     const phone = this.phoneIdentity(dto);
     const user = await this.requireRegisteredUser(phone);
     const otp = await this.requireValidOtp(phone, dto.otp);
 
     await this.prisma.phoneOtp.delete({ where: { id: otp.id } });
 
-    return this.toAuthResponse(user);
+    return toDataResponse(this.toAuthResponse(user));
   }
 
   private async requestOtp(
     phone: PhoneIdentity,
-  ): Promise<OtpRequestedResponseDto> {
+  ): Promise<OtpRequestedDto> {
     const now = new Date();
     const existing = await this.prisma.phoneOtp.findUnique({
       where: { countryCode_phoneNumber: phone },
@@ -287,7 +298,7 @@ export class AuthService {
     );
   }
 
-  private toAuthResponse(user: AuthUser): AuthResponseDto {
+  private toAuthResponse(user: AuthUser): AuthDto {
     return {
       accessToken: this.jwt.sign({ sub: user.id }),
       user: this.toUserResponse(user),

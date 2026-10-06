@@ -1,3 +1,4 @@
+import { DataResponseDto } from '../../../common/dto/api-response.dto.js';
 import type { Role } from '../../../generated/prisma/client.js';
 
 export class AuthUserResponseDto {
@@ -11,13 +12,21 @@ export class AuthUserResponseDto {
   onboardingCompleted: boolean;
 }
 
-export class OtpRequestedResponseDto {
+export class OtpRequestedDto {
   countryCode: string;
   phoneNumber: string;
   resendAvailableInSeconds: number;
 }
 
-export class AuthResponseDto {
+export class AuthDto {
   accessToken: string;
   user: AuthUserResponseDto;
+}
+
+export class OtpRequestedResponseDto extends DataResponseDto<OtpRequestedDto> {
+  declare data: OtpRequestedDto;
+}
+
+export class AuthResponseDto extends DataResponseDto<AuthDto> {
+  declare data: AuthDto;
 }
