@@ -11,6 +11,7 @@ import {
   Matches,
   ValidateNested,
 } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 import { Gender } from '../../../generated/prisma/client.js';
 import type { I18nTranslations } from '../../../generated/i18n.generated.js';
@@ -28,6 +29,7 @@ const BLOOD_GROUPS = [
 ] as const;
 
 export class UpdatePatientDto {
+  @ApiPropertyOptional({ example: 'Priya Sharma' })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
@@ -37,6 +39,7 @@ export class UpdatePatientDto {
   })
   fullName?: string;
 
+  @ApiPropertyOptional({ example: 'priya@example.com' })
   @IsOptional()
   @IsEmail(
     {},
@@ -46,6 +49,7 @@ export class UpdatePatientDto {
   )
   email?: string;
 
+  @ApiPropertyOptional({ example: 'en', enum: ['en'] })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
@@ -55,6 +59,10 @@ export class UpdatePatientDto {
   })
   preferredLanguage?: string;
 
+  @ApiPropertyOptional({
+    example: '1990-05-15',
+    description: 'ISO date YYYY-MM-DD',
+  })
   @IsOptional()
   @Type(() => String)
   @IsString({
@@ -74,12 +82,16 @@ export class UpdatePatientDto {
   )
   dateOfBirth?: string;
 
+  @ApiPropertyOptional({ enum: Gender, example: Gender.FEMALE })
   @IsOptional()
   @IsEnum(Gender, {
     message: i18nValidationMessage<I18nTranslations>('validation.IS_ENUM'),
   })
   gender?: Gender;
 
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/photos/priya.jpg',
+  })
   @IsOptional()
   @IsUrl(
     {},
@@ -89,6 +101,7 @@ export class UpdatePatientDto {
   )
   profilePhotoUrl?: string;
 
+  @ApiPropertyOptional({ example: 'O+', enum: BLOOD_GROUPS })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
@@ -98,6 +111,7 @@ export class UpdatePatientDto {
   })
   bloodGroup?: string;
 
+  @ApiPropertyOptional({ type: EmergencyContactDto })
   @IsOptional()
   @ValidateNested()
   @Type(() => EmergencyContactDto)

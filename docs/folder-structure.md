@@ -53,11 +53,15 @@ project/
 │   ├── common/
 │   │   ├── decorators/
 │   │   ├── dto/
+│   │   │   ├── api-response.dto.ts
+│   │   │   └── api-error.dto.ts
 │   │   ├── filters/
 │   │   ├── guards/
 │   │   ├── interceptors/
 │   │   ├── pipes/
 │   │   └── utils/
+│   │       ├── configure-app.ts
+│   │       └── setup-swagger.ts
 │   │
 │   ├── config/
 │   │   ├── app.config.ts

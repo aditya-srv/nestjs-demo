@@ -25,8 +25,18 @@ src/modules/<name>/
 
 - One Nest module = one `src/i18n/en/<name>.json` in the same change. Mirror keys under `hi/` when that locale exists.
 - Controllers: `@Controller({ path: '<name>', version: API_DEFAULT_VERSION })`. Thin: bind params/body, call the service, return. No Prisma, no `i18n.t`.
-- Import with `.js` extensions (`nodenext`). No `any`. No Zod on HTTP DTOs (Zod is env-only). No Swagger unless asked.
+- Import with `.js` extensions (`nodenext`). No `any`. No Zod on HTTP DTOs (Zod is env-only).
 - Do not add `ValidationPipe` / extra exception filters on a controller. Globals in `AppModule` already handle this.
+
+## Swagger / OpenAPI
+
+UI is at `/docs` (all environments). Setup: `setupSwagger` in `src/common/utils/setup-swagger.ts`, called from `main.ts`. Document a module only by adding it to `include` in that call — modules not listed must not appear in the UI.
+
+When documenting a module:
+
+- Controller: `@ApiTags`, `@ApiOperation`, `@ApiOkResponse` with the module envelope DTO, plus `@Api*Response` for statuses the service actually throws (and validation `400` via `ValidationErrorDto`).
+- Request/response DTOs: `@ApiProperty` (examples where useful). Shared envelopes stay in `src/common/dto/api-response.dto.ts`; shared error shapes in `src/common/dto/api-error.dto.ts` (`ValidationErrorDto`, `HttpErrorDto`).
+- Do not change runtime validation or error response shapes for Swagger. Do not invent endpoints or statuses that the service does not throw.
 
 ## Request DTOs
 

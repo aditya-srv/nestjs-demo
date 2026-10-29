@@ -5,11 +5,13 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 import type { I18nTranslations } from '../../../generated/i18n.generated.js';
 import { PhoneDto } from '../../auth/dto/phone.dto.js';
 
 export class EmergencyContactDto {
+  @ApiProperty({ example: 'Ravi Sharma' })
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
   })
@@ -18,6 +20,7 @@ export class EmergencyContactDto {
   })
   name: string;
 
+  @ApiProperty({ example: 'Spouse' })
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
   })
@@ -26,6 +29,7 @@ export class EmergencyContactDto {
   })
   relationship: string;
 
+  @ApiProperty({ type: PhoneDto })
   @IsNotEmpty({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_NOT_EMPTY'),
   })
@@ -33,6 +37,7 @@ export class EmergencyContactDto {
   @Type(() => PhoneDto)
   phone: PhoneDto;
 
+  @ApiPropertyOptional({ type: PhoneDto })
   @IsOptional()
   @ValidateNested()
   @Type(() => PhoneDto)

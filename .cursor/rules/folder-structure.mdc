@@ -32,7 +32,9 @@ Auth also has `guards/` and `strategies/`. Do not add feature modules next to `s
 
 Cross-cutting code only, in: `decorators/`, `dto/`, `filters/`, `guards/`, `interceptors/`, `pipes/`, `utils/`.
 
-`dto/` holds shared envelopes only (`api-response.dto.ts`). Feature request/response DTOs stay under `src/modules/<name>/dto/`.
+`dto/` holds shared envelopes and shared OpenAPI error shapes only (`api-response.dto.ts`, `api-error.dto.ts`). Feature request/response DTOs stay under `src/modules/<name>/dto/`.
+
+Swagger bootstrap helpers live in `utils/` (`setup-swagger.ts`). Feature `@Api*` decorators stay on module controllers and DTOs — do not put feature OpenAPI schemas in `common/`.
 
 ## Do not
 

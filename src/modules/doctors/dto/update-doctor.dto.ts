@@ -6,10 +6,12 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 import type { I18nTranslations } from '../../../generated/i18n.generated.js';
 
 export class UpdateDoctorDto {
+  @ApiPropertyOptional({ example: 'Dr. Anita Mehta' })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
@@ -19,6 +21,7 @@ export class UpdateDoctorDto {
   })
   fullName?: string;
 
+  @ApiPropertyOptional({ example: 'anita@example.com' })
   @IsOptional()
   @IsEmail(
     {},
@@ -28,6 +31,7 @@ export class UpdateDoctorDto {
   )
   email?: string;
 
+  @ApiPropertyOptional({ example: 'en', enum: ['en'] })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
@@ -37,6 +41,7 @@ export class UpdateDoctorDto {
   })
   preferredLanguage?: string;
 
+  @ApiPropertyOptional({ example: 'Cardiology' })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),

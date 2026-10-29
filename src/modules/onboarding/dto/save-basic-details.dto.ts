@@ -10,11 +10,13 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { i18nValidationMessage } from 'nestjs-i18n';
 import { Gender } from '../../../generated/prisma/client.js';
 import type { I18nTranslations } from '../../../generated/i18n.generated.js';
 
 export class SaveBasicDetailsDto {
+  @ApiProperty({ example: 'Priya Sharma' })
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
   })
@@ -23,6 +25,10 @@ export class SaveBasicDetailsDto {
   })
   fullName: string;
 
+  @ApiProperty({
+    example: '1990-05-15',
+    description: 'ISO date YYYY-MM-DD',
+  })
   @Type(() => String)
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
@@ -41,11 +47,13 @@ export class SaveBasicDetailsDto {
   )
   dateOfBirth: string;
 
+  @ApiProperty({ enum: Gender, example: Gender.FEMALE })
   @IsEnum(Gender, {
     message: i18nValidationMessage<I18nTranslations>('validation.IS_ENUM'),
   })
   gender: Gender;
 
+  @ApiProperty({ example: 'priya@example.com' })
   @IsEmail(
     {},
     {
@@ -54,6 +62,9 @@ export class SaveBasicDetailsDto {
   )
   email: string;
 
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/photos/priya.jpg',
+  })
   @IsOptional()
   @IsUrl(
     {},
@@ -63,6 +74,7 @@ export class SaveBasicDetailsDto {
   )
   profilePhotoUrl?: string;
 
+  @ApiPropertyOptional({ example: 'en', enum: ['en'] })
   @IsOptional()
   @IsString({
     message: i18nValidationMessage<I18nTranslations>('validation.IS_STRING'),
