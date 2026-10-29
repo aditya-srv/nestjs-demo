@@ -32,6 +32,67 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+enum VisitType {
+  CONSULTATION
+  FOLLOW_UP
+  WALK_IN
+}
+
+enum VisitStatus {
+  OPEN
+  COMPLETED
+}
+
+enum DiagnosisType {
+  ACUTE
+  CHRONIC
+}
+
+enum DiagnosisStatus {
+  ACTIVE
+  RESOLVED
+  IMPROVING
+}
+
+enum DiagnosisSeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+enum VitalType {
+  BLOOD_PRESSURE
+  HEART_RATE
+  SPO2
+  TEMPERATURE
+  BLOOD_GLUCOSE
+  OTHER
+}
+
+enum PrescriptionStatus {
+  ACTIVE
+  STOPPED
+}
+
+enum ReportType {
+  BLOOD
+  RADIOLOGY
+  PATHOLOGY
+  OTHER
+}
+
+enum VisitNoteType {
+  DOCTOR_NOTE
+  RED_FLAG
+  NEXT_ACTION
+}
+
+enum FollowUpStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id                        Int             @id @default(autoincrement())
   email                     String?         @unique
@@ -48,6 +109,13 @@ model User {
   appointmentsAsPatient     Appointment[]   @relation("AppointmentPatient")
   appointmentsAsDoctor      Appointment[]   @relation("AppointmentDoctor")
   appointmentsCreated       Appointment[]   @relation("AppointmentCreatedBy")
+  visitsAsPatient           Visit[]         @relation("VisitPatient")
+  visitsAsDoctor            Visit[]         @relation("VisitDoctor")
+  diagnoses                 Diagnosis[]
+  prescriptionsAsPatient    Prescription[]  @relation("PrescriptionPatient")
+  prescriptionsWritten      Prescription[]  @relation("PrescriptionPrescriber")
+  medicalReports            MedicalReport[]
+  visitNotes                VisitNote[]
 
   @@unique([countryCode, phoneNumber])
 }
@@ -114,10 +182,173 @@ model Appointment {
   patient         User              @relation("AppointmentPatient", fields: [patientId], references: [id])
   doctor          User?             @relation("AppointmentDoctor", fields: [doctorId], references: [id])
   createdBy       User              @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id])
+  visit           Visit?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   @@index([patientId, appointmentAt])
   @@index([doctorId, appointmentAt])
   @@index([status, appointmentAt])
+}
+
+model Visit {
+  id            Int         @id @default(autoincrement())
+  patientId     Int
+  doctorId      Int
+  appointmentId Int?        @unique
+  visitedAt     DateTime
+  type          VisitType
+  reason        String?
+  status        VisitStatus @default(OPEN)
+  patient       User        @relation("VisitPatient", fields: [patientId], references: [id])
+  doctor        User        @relation("VisitDoctor", fields: [doctorId], references: [id])
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  diagnoses     VisitDiagnosis[]
+  vitals        VisitVital[]
+  prescriptions Prescription[]
+  reports       MedicalReport[]
+  notes         VisitNote[]
+  followUps     VisitFollowUp[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([patientId, visitedAt])
+  @@index([doctorId, visitedAt])
+}
+
+model Diagnosis {
+  id           Int                @id @default(autoincrement())
+  patientId    Int
+  name         String
+  code         String?
+  type         DiagnosisType
+  status       DiagnosisStatus
+  severity     DiagnosisSeverity?
+  diagnosedOn  DateTime           @db.Date
+  patient      User               @relation(fields: [patientId], references: [id])
+  visitLinks   VisitDiagnosis[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([patientId])
+}
+
+model VisitDiagnosis {
+  id          Int       @id @default(autoincrement())
+  visitId     Int
+  diagnosisId Int
+  notes       String?
+  isPrimary   Boolean   @default(false)
+  visit       Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([visitId, diagnosisId])
+}
+
+model VisitVital {
+  id         Int       @id @default(autoincrement())
+  visitId    Int
+  type       VitalType
+  value      String
+  unit       String?
+  recordedAt DateTime  @default(now())
+  visit      Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([visitId])
+}
+
+model Medicine {
+  id                Int                @id @default(autoincrement())
+  name              String
+  nameKey           String             @unique
+  strength          String?
+  form              String?
+  prescriptionItems PrescriptionItem[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Prescription {
+  id             Int                @id @default(autoincrement())
+  visitId        Int
+  patientId      Int
+  prescribedById Int
+  prescribedAt   DateTime           @default(now())
+  notes          String?
+  status         PrescriptionStatus @default(ACTIVE)
+  visit          Visit              @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  patient        User               @relation("PrescriptionPatient", fields: [patientId], references: [id])
+  prescribedBy   User               @relation("PrescriptionPrescriber", fields: [prescribedById], references: [id])
+  items          PrescriptionItem[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([visitId])
+  @@index([patientId])
+}
+
+model PrescriptionItem {
+  id             Int          @id @default(autoincrement())
+  prescriptionId Int
+  medicineId     Int
+  dosage         String
+  frequency      String
+  duration       String
+  instructions   String?
+  startDate      DateTime?    @db.Date
+  endDate        DateTime?    @db.Date
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicine       Medicine     @relation(fields: [medicineId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([prescriptionId])
+}
+
+model MedicalReport {
+  id         Int        @id @default(autoincrement())
+  patientId  Int
+  visitId    Int?
+  reportType ReportType
+  title      String
+  fileUrl    String
+  reportDate DateTime?  @db.Date
+  patient    User       @relation(fields: [patientId], references: [id])
+  visit      Visit?     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([patientId])
+  @@index([visitId])
+}
+
+model VisitNote {
+  id        Int           @id @default(autoincrement())
+  visitId   Int
+  noteType  VisitNoteType
+  content   String
+  authorId  Int
+  visit     Visit         @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  author    User          @relation(fields: [authorId], references: [id])
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([visitId])
+}
+
+model VisitFollowUp {
+  id              Int            @id @default(autoincrement())
+  visitId         Int
+  recommendedDate DateTime
+  instructions    String?
+  status          FollowUpStatus @default(PLANNED)
+  visit           Visit          @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([visitId])
 }

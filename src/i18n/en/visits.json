@@ -1,0 +1,17 @@
+{
+  "errors": {
+    "notFound": "Visit not found",
+    "forbidden": "You do not have access to this visit",
+    "doctorOnly": "Only a doctor can create a visit",
+    "patientNotFound": "Patient not found",
+    "appointmentNotFound": "Appointment not found",
+    "appointmentPatientMismatch": "Appointment does not belong to this patient",
+    "appointmentNotLinkable": "This appointment cannot be linked to a visit",
+    "appointmentDoctorMismatch": "Appointment is assigned to another doctor",
+    "appointmentAlreadyLinked": "This appointment already has a visit",
+    "diagnosisNotFound": "Diagnosis not found",
+    "medicineNotFound": "Medicine not found",
+    "visitClosed": "This visit is already completed",
+    "invalidStatusTransition": "Cannot change visit status to {status}"
+  }
+}

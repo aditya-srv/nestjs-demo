@@ -40,3 +40,5 @@ lerna-debug.log*
 .windsurf
 .agents
 skills-lock.json
+
+*.tsbuildinfo

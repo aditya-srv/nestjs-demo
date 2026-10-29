@@ -14,6 +14,7 @@ import { JwtConfigModule } from './modules/auth/jwt.module.js';
 import { DoctorsModule } from './modules/doctors/doctors.module.js';
 import { OnboardingModule } from './modules/onboarding/onboarding.module.js';
 import { PatientsModule } from './modules/patients/patients.module.js';
+import { VisitsModule } from './modules/visits/visits.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -27,6 +28,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     DoctorsModule,
     OnboardingModule,
     AppointmentsModule,
+    VisitsModule,
   ],
   controllers: [AppController],
   providers: [

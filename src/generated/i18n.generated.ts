@@ -79,6 +79,23 @@ export type I18nTranslations = {
         "IS_ARRAY": string;
         "IS_IN": string;
     };
+    "visits": {
+        "errors": {
+            "notFound": string;
+            "forbidden": string;
+            "doctorOnly": string;
+            "patientNotFound": string;
+            "appointmentNotFound": string;
+            "appointmentPatientMismatch": string;
+            "appointmentNotLinkable": string;
+            "appointmentDoctorMismatch": string;
+            "appointmentAlreadyLinked": string;
+            "diagnosisNotFound": string;
+            "medicineNotFound": string;
+            "visitClosed": string;
+            "invalidStatusTransition": string;
+        };
+    };
 };
 /* prettier-ignore */
 export type I18nPath = Path<I18nTranslations>;
